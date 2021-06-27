@@ -1,6 +1,8 @@
 # Serverless Feature Flag
 
-Basic feature flag example using aws app config and the serverless framework
+Basic feature flag example using aws app config and the serverless framework.
+
+I have discussed this in the following [blog post](https://leejamesgilmore.medium.com/serverless-feature-flags-6e49d534e79f)
 
 ## Overview
 
@@ -8,7 +10,7 @@ This example repo shows how to use [AWS App Config](https://docs.aws.amazon.com/
 
 > An AWS Lambda extension is a companion process that augments the capabilities of a Lambda function. An extension can start before a function is invoked, run in parallel with a function, and continue to run after a function invocation is processed. In essence, a Lambda extension is like a client that runs in parallel to a Lambda invocation. This parallel client can interface with your function at any point during its lifecycle.
 
-If you use AWS AppConfig to manage configurations for a Lambda function, then we recommend that you add the AWS AppConfig Lambda extension. This extension includes best practices that simplify using AWS AppConfig while reducing costs. Reduced costs result from fewer API calls to the AWS AppConfig service and, separately, reduced costs from shorter Lambda function processing times.
+> If you use AWS AppConfig to manage configurations for a Lambda function, then we recommend that you add the AWS AppConfig Lambda extension. This extension includes best practices that simplify using AWS AppConfig while reducing costs. Reduced costs result from fewer API calls to the AWS AppConfig service and, separately, reduced costs from shorter Lambda function processing times.
 
 
 ## Why AppConfig?
