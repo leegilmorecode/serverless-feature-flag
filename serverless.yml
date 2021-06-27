@@ -1,0 +1,115 @@
+service: serverless-feature-flag
+provider:
+  name: aws
+  runtime: nodejs12.x
+  lambdaHashingVersion: 20201221
+  memorySize: 128
+  stage: ${opt:stage, 'develop'}
+  region: eu-west-1
+  apiGateway:
+    shouldStartNameWithService: true
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - appconfig:GetConfiguration
+      Resource:
+        - !Sub 'arn:aws:appconfig:${AWS::Region}:${AWS::AccountId}:application/${FeatureFlagApplication}'
+        - !Sub 'arn:aws:appconfig:${AWS::Region}:${AWS::AccountId}:application/${FeatureFlagApplication}/environment/${FeatureFlagEnvironment}'
+        - !Sub 'arn:aws:appconfig:${AWS::Region}:${AWS::AccountId}:application/${FeatureFlagApplication}/configurationprofile/${FeatureFlagAppConfigProfile}'
+  environment:
+    # app config specific
+    AWS_APPCONFIG_EXTENSION_POLL_INTERVAL_SECONDS: 30
+    AWS_APPCONFIG_EXTENSION_POLL_TIMEOUT_MILLIS: 3000
+    AWS_APPCONFIG_EXTENSION_HTTP_PORT: 2772
+    # application specific i.e. feature flag
+    ENVIRONMENT: "feature-flag-environment"
+    APPLICATION: "serverless-feature-flag-${self:provider.stage}"
+    CONFIGURATION: "feature-flag-app-profile-${self:provider.stage}"
+    STAGE: ${self:provider.stage}
+package:
+  individually: true
+functions:
+  feature:
+    handler: src/handler.feature
+    layers:
+      - arn:aws:lambda:eu-west-1:434848589818:layer:AWS-AppConfig-Extension:41
+    events:
+      - http:
+          path: feature
+          method: get
+resources:
+  Resources:
+    # the feature application
+    FeatureFlagApplication:
+      Type: AWS::AppConfig::Application
+      Properties:
+        Name: "serverless-feature-flag-${self:provider.stage}"
+        Description: "Example serverless feature flag demo."
+        Tags:
+          - Key: App
+            Value: "FeatureFlagApplication"
+          - Key: Stage
+            Value: "${self:provider.stage}"
+    # the application environment
+    FeatureFlagEnvironment:
+      Type: AWS::AppConfig::Environment
+      Properties:
+        ApplicationId: !Ref FeatureFlagApplication
+        Name: "feature-flag-environment"
+        Description: "Feature Flag Environment"
+        Tags:
+          - Key: App
+            Value: "FeatureFlagApplication"
+          - Key: Stage
+            Value: "${self:provider.stage}"
+    # configuration profile
+    FeatureFlagAppConfigProfile:
+      Type: AWS::AppConfig::ConfigurationProfile
+      Properties:
+        ApplicationId: !Ref FeatureFlagApplication
+        Name: "feature-flag-app-profile-${self:provider.stage}"
+        LocationUri: "hosted"
+    # configuration
+    FeatureFlagConfigurationVersion:
+      Type: AWS::AppConfig::HostedConfigurationVersion
+      Properties:
+        ApplicationId: !Ref FeatureFlagApplication
+        ConfigurationProfileId: !Ref FeatureFlagAppConfigProfile
+        Description: "Feature Flag Application Config"
+        Content: !Sub |
+          {
+              "featureEnabled": true
+          }
+        ContentType: "application/json"
+        LatestVersionNumber: 1
+    # deployment strategy
+    DeploymentStrategy:
+      Type: AWS::AppConfig::DeploymentStrategy
+      Properties:
+        Name: "deployment-strategy-${self:provider.stage}"
+        Description: "Feature flag deployment strategy ${self:provider.stage}"
+        DeploymentDurationInMinutes: 0
+        FinalBakeTimeInMinutes: 0
+        GrowthFactor: 100
+        GrowthType: LINEAR
+        ReplicateTo: NONE
+        Tags:
+          - Key: App
+            Value: "FeatureFlagApplication"
+          - Key: Stage
+            Value: "${self:provider.stage}"
+    # deployment
+    FeatureFlagDeployment:
+      Type: AWS::AppConfig::Deployment
+      Properties:
+        ApplicationId: !Ref FeatureFlagApplication
+        EnvironmentId: !Ref FeatureFlagEnvironment
+        DeploymentStrategyId: !Ref DeploymentStrategy
+        ConfigurationProfileId: !Ref FeatureFlagAppConfigProfile
+        ConfigurationVersion: "1"
+        Description: "feature flag deployment ${self:provider.stage}"
+        Tags:
+          - Key: App
+            Value: "FeatureFlagApplication"
+          - Key: Stage
+            Value: "${self:provider.stage}"
